@@ -846,10 +846,10 @@ describe('PATCH /api/settings/profile', () => {
       method: 'PATCH',
       url: '/api/settings/profile',
       headers: json,
-      payload: { language: 'ja' },
+      payload: { language: 'zh' },
     })
     expect(res.statusCode).toBe(200)
-    expect(res.json().language).toBe('ja')
+    expect(res.json().language).toBe('zh')
   })
 
   it('returns 400 for empty account_name', async () => {
@@ -965,6 +965,17 @@ describe('PATCH /api/settings/preferences', () => {
     })
     expect(res.statusCode).toBe(200)
     expect(res.json()['appearance.color_theme']).toBe('solarized')
+  })
+
+  it('accepts Chinese as translation target language', async () => {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/settings/preferences',
+      headers: json,
+      payload: { 'translate.target_lang': 'zh' },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json()['translate.target_lang']).toBe('zh')
   })
 })
 

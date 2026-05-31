@@ -2,6 +2,7 @@ import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 import { Dialog, DialogPortal, DialogOverlay, DialogTitle } from '../ui/dialog'
 import { ArticleDetail } from './article-detail'
+import { useI18n } from '../../lib/i18n'
 
 interface ArticleOverlayProps {
   articleUrl: string | null
@@ -9,6 +10,8 @@ interface ArticleOverlayProps {
 }
 
 export function ArticleOverlay({ articleUrl, onClose }: ArticleOverlayProps) {
+  const { t } = useI18n()
+
   return (
     <Dialog open={!!articleUrl} onOpenChange={(open) => { if (!open) onClose() }}>
       <DialogPortal>
@@ -18,13 +21,13 @@ export function ArticleOverlay({ articleUrl, onClose }: ArticleOverlayProps) {
           aria-describedby={undefined}
           data-keyboard-nav-passthrough=""
         >
-          <DialogTitle className="sr-only">Article</DialogTitle>
+          <DialogTitle className="sr-only">{t('article.sourceArticle')}</DialogTitle>
           {/* Close button */}
           <div className="sticky top-0 z-10 flex items-center h-12 px-4 bg-bg/80 backdrop-blur-sm border-b border-border" style={{ paddingTop: 'var(--safe-area-inset-top)' }}>
             <button
               onClick={onClose}
               className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-hover transition-colors"
-              aria-label="Close"
+              aria-label={t('common.close')}
             >
               <X className="w-5 h-5 text-muted" />
             </button>

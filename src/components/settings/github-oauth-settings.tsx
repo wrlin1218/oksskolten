@@ -143,10 +143,10 @@ export function GitHubOAuthSettings() {
               {t('settings.githubGuideStep2')}
             </p>
             <div className="ml-3.5 space-y-1">
-              <p><span className="text-text">Application name:</span> {t('settings.githubGuideAppName')}</p>
-              <p><span className="text-text">Homepage URL:</span> <code className="text-text bg-bg px-1 rounded">{window.location.origin}</code></p>
+              <p><span className="text-text">{t('settings.githubGuideApplicationName')}:</span> {t('settings.githubGuideAppName')}</p>
+              <p><span className="text-text">{t('settings.githubGuideHomepageUrl')}:</span> <code className="text-text bg-bg px-1 rounded">{window.location.origin}</code></p>
               <p>
-                <span className="text-text">Callback URL:</span>{' '}
+                <span className="text-text">{t('settings.githubGuideCallbackUrl')}:</span>{' '}
                 <code className="text-text bg-bg px-1 rounded">{callbackUrl}</code>
                 <button
                   type="button"
@@ -241,7 +241,7 @@ export function GitHubOAuthSettings() {
               />
             </button>
             <span className="text-sm text-text select-none">
-              {config.enabled ? 'On' : 'Off'}
+              {config.enabled ? t('settings.autoMarkReadOn') : t('settings.autoMarkReadOff')}
             </span>
           </label>
 

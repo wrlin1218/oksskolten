@@ -5,11 +5,12 @@ import seedConversationsJa from './seed/ja/conversations.json'
 import { getLocale, dt } from './i18n'
 import type { FeedWithCounts, ArticleListItem, ArticleDetail, Category } from '../../../shared/types'
 
-type Locale = 'ja' | 'en'
+type Locale = 'ja' | 'en' | 'zh'
 
 const conversationsByLocale = {
   en: seedConversationsEn,
   ja: seedConversationsJa,
+  zh: seedConversationsEn,
 }
 
 /**

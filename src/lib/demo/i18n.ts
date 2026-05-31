@@ -1,4 +1,4 @@
-type Locale = 'ja' | 'en'
+type Locale = 'ja' | 'en' | 'zh'
 
 const dict = {
   'demo.defaultUser': { ja: 'Demo User', en: 'Demo User' },
@@ -42,13 +42,31 @@ const dict = {
 
 type DemoMessageKey = keyof typeof dict
 
+const zhDict = {
+  'demo.defaultUser': '演示用户',
+  'demo.disabled': '演示模式不可用',
+  'demo.aiDisabled': 'AI 功能需要自托管实例',
+  'demo.sampleArticle': '示例文章',
+  'demo.sampleArticleBody': '这是一篇为演示生成的示例文章。',
+  'demo.chatReply': '你好！这是 Oksskolten 的演示版。\n\n聊天功能可以让你围绕文章内容向 AI 提问、请求总结，并用对话方式探索阅读列表。自托管版本可以连接以下提供商：\n\n- **Anthropic** (Claude)\n- **Google** (Gemini)\n- **OpenAI** (GPT)\n\n使用 `docker compose up` 即可快速开始。',
+  'demo.chatReply.recommend': '今天推荐读这些：\n\n1. [Allocation Optimizations in Go](/go.dev/blog/allocation-optimizations) — Go 1.26 的逃逸分析改进显著减少堆分配，关注性能的话值得一读\n2. [Streaming AI Inference on Workers](/blog.cloudflare.com/workers-ai-streaming) — 在 Cloudflare Workers 上以流式方式运行 AI 推理，展示边缘计算的新方向\n3. [What does it take to ship Rust in safety-critical?](/blog.rust-lang.org/2026/01/14/what-does-it-take-to-ship-rust-in-safety-critical/) — 在安全关键领域使用 Rust 的挑战与实践\n\n这些都很值得读。点击任意文章可以查看详情。',
+  'demo.chatReply.unread': '我看了一下你的未读文章，挑出几篇可能有意思的：\n\n- [Experimental JSON v2 Package](/go.dev/blog/jsonv2-exp) — Go 新的 JSON 包，尝试解决 `encoding/json` 的一些痛点\n- [Multi-agent workflows often fail. Here\'s how to engineer ones that don\'t.](/github.blog/ai-and-ml/generative-ai/multi-agent-workflows-often-fail-heres-how-to-engineer-ones-that-dont/) — 多智能体系统设计模式，AI 开发者值得关注\n- [Introducing Deno Sandbox](/deno.com/blog/introducing-deno-sandbox) — Deno 的沙箱能力，适合关注安全的开发者\n\n未读文章还不少，有时间可以慢慢看。',
+  'demo.chatReply.trending': '从你的订阅源看，最近这些方向比较热：\n\n**AI × 开发工具** 很活跃。[What\'s new with GitHub Copilot coding agent](/github.blog/ai-and-ml/github-copilot/whats-new-with-github-copilot-coding-agent/) 和 [Streaming AI Inference on Workers](/blog.cloudflare.com/workers-ai-streaming) 都体现了 AI 正在更深地进入基础设施层。\n\n**运行时竞争** 也很有意思。Deno 2.7 支持 Temporal API、Go 1.26 做了优化、Rust 1.92 发布，各语言和运行时都在稳步推进。\n\n**安全** 相关内容也不少，包括 Cloudflare 威胁报告和后量子密码学话题。\n\n你的订阅源覆盖面不错，趋势看得很清楚。',
+  'demo.chatReply.surprise': '推荐一篇不太一样的：\n\n[Build a dinosaur runner game with Deno, pt. 1](/deno.com/blog/build-a-game-with-deno-1)\n\n这是一篇用 Deno 构建浏览器“恐龙跑酷”游戏的教程。平时如果基础设施和后端文章看得多，这种轻松的实践内容会很换脑。\n\n另外 [16 Years of Go](/go.dev/blog/16years) 也挺有意思，回顾 16 年历史能看到很多今天习以为常的功能是如何形成的。',
+  'demo.chatReply.digest': '这是本周摘要：\n\n## Go\n- [Go 1.26 is Released](/go.dev/blog/go1.26) — 带来逃逸分析优化和 fake time 测试能力\n- [Experimental JSON v2 Package](/go.dev/blog/jsonv2-exp) 发布\n\n## Cloudflare\n- [Welcome to AI Week 2025](/blog.cloudflare.com/welcome-to-ai-week-2025) — Workers 上的流式 AI 推理\n- [Cloudflare Outage: February 20, 2026](/blog.cloudflare.com/cloudflare-outage-february-20-2026) — 故障复盘发布\n\n## Kubernetes\n- [Kubernetes v1.35 Sneak Peek](/kubernetes.io/blog/2025/11/26/kubernetes-v1-35-sneak-peek) — 包含 Mutable PV Node Affinity 等内容\n- [Ingress-NGINX Retirement Plan](/kubernetes.io/blog/2025/11/11/ingress-nginx-retirement) 公布\n\n## Rust\n- [Announcing Rust 1.92.0](/blog.rust-lang.org/2025/12/11/Rust-1.92.0)\n- [What does it take to ship Rust in safety-critical?](/blog.rust-lang.org/2026/01/14/what-does-it-take-to-ship-rust-in-safety-critical/) 受到关注\n\n## 其他\n- [Deno Deploy is Generally Available](/deno.com/blog/deno-deploy-is-ga)\n- [Tailscale Services](/tailscale.com/blog/services-ga) 和 [Peer Relays](/tailscale.com/blog/peer-relays-ga) 均已 GA\n\n这一周内容不少。',
+  'demo.summaryReply': '这是演示版，因此不会生成真实 AI 总结。自托管版本可以使用 Anthropic / Gemini / OpenAI 一键总结文章。',
+  'demo.translateReply': '这是演示版，因此不会生成真实 AI 翻译。自托管版本可以从 6 个翻译引擎中选择，包括 Anthropic / Gemini / OpenAI / DeepL / Google Translate。',
+} satisfies Record<DemoMessageKey, string>
+
 export function getLocale(): Locale {
   const v = localStorage.getItem('locale')
-  return v === 'ja' ? 'ja' : 'en'
+  return v === 'ja' || v === 'en' || v === 'zh' ? v : 'en'
 }
 
 export function dt(key: DemoMessageKey): string {
-  return dict[key][getLocale()]
+  const locale = getLocale()
+  if (locale === 'zh') return zhDict[key]
+  return dict[key][locale]
 }
 
 /** Simulate SSE-like streaming by emitting text in small chunks with delays. */
@@ -56,7 +74,7 @@ export function streamText(text: string, onChunk: (chunk: string) => void): Prom
   return new Promise(resolve => {
     // Split into small chunks (CJK vs latin)
     const locale = getLocale()
-    const chunkSize = locale === 'ja' ? 2 : 5
+    const chunkSize = locale === 'ja' || locale === 'zh' ? 2 : 5
     const chunks: string[] = []
     for (let i = 0; i < text.length; i += chunkSize) {
       chunks.push(text.slice(i, i + chunkSize))

@@ -323,7 +323,7 @@ export function FeedList({ isOpen, onClose, onBackdropClose, onCollapse, onMarkA
             <AlertTriangle size={13} className="text-warning shrink-0" />
           )}
           {showFeedActivity === 'on' && !feed.disabled && isFeedInactive(feed) && (
-            <span className="text-[10px] text-muted ml-1 shrink-0">inactive</span>
+            <span className="text-[10px] text-muted ml-1 shrink-0">{t('feeds.inactive')}</span>
           )}
         </div>
         {(() => {

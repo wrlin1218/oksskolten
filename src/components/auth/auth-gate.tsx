@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import useSWR from 'swr'
 import { AUTH_LOGOUT_EVENT, getAuthToken, setAuthToken } from '../../lib/auth'
+import { translate } from '../../lib/i18n'
 import { LoginPage } from '../../pages/login-page'
 
 // AuthGate uses its own fetcher that does NOT redirect on 401.
@@ -68,7 +69,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   if (isLoading || exchanging) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-bg text-text">
-        <div className="rounded-full border-2 border-border border-t-accent h-8 w-8 animate-spin" aria-label="Loading" />
+        <div className="rounded-full border-2 border-border border-t-accent h-8 w-8 animate-spin" aria-label={translate('common.loading')} />
       </div>
     )
   }

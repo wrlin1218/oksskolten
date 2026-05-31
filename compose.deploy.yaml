@@ -1,0 +1,111 @@
+name: ${COMPOSE_PROJECT_NAME:-oksskolten}
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  app:
+    build:
+      context: .
+      target: runtime
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+        GIT_TAG: ${GIT_TAG:-local}
+        BUILD_DATE: ${BUILD_DATE:-unknown}
+    image: ${OKSSKOLTEN_IMAGE:-oksskolten:local}
+    restart: unless-stopped
+    init: true
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      TZ: ${TZ:-UTC}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?MEILI_MASTER_KEY is required}
+      FETCH_CONCURRENCY: ${FETCH_CONCURRENCY:-5}
+      PARSE_MAX_THREADS: ${PARSE_MAX_THREADS:-2}
+      FLARESOLVERR_CONCURRENCY: ${FLARESOLVERR_CONCURRENCY:-1}
+      CRON_SCHEDULE: ${CRON_SCHEDULE:-*/5 * * * *}
+      SCORE_RECALC_SCHEDULE: ${SCORE_RECALC_SCHEDULE:-*/5 * * * *}
+      RETENTION_SCHEDULE: ${RETENTION_SCHEDULE:-0 4 * * *}
+      AUTH_DISABLED: ${AUTH_DISABLED:-0}
+      DATA_DIR: /app/data
+      DATABASE_URL: file:/app/data/rss.db
+      MEILI_URL: http://meilisearch:7700
+      RSS_BRIDGE_URL: http://rss-bridge:80
+      FLARESOLVERR_URL: http://flaresolverr:8191
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      VLLM_BASE_URL: ${VLLM_BASE_URL:-http://host.docker.internal:8000}
+    ports:
+      - "${APP_PORT:-3030}:3000"
+    volumes:
+      - oksskolten_data:/app/data
+    depends_on:
+      meilisearch:
+        condition: service_healthy
+      rss-bridge:
+        condition: service_started
+      flaresolverr:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 10
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    stop_grace_period: 20s
+    logging: *default-logging
+    networks:
+      - oksskolten
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.13
+    restart: unless-stopped
+    environment:
+      MEILI_ENV: production
+      MEILI_DB_PATH: /meili_data
+      MEILI_LOG_LEVEL: WARN
+      MEILI_NO_ANALYTICS: "true"
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?MEILI_MASTER_KEY is required}
+    volumes:
+      - oksskolten_meili:/meili_data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 12
+    logging: *default-logging
+    networks:
+      - oksskolten
+
+  rss-bridge:
+    image: rssbridge/rss-bridge:latest
+    restart: unless-stopped
+    logging: *default-logging
+    networks:
+      - oksskolten
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    restart: unless-stopped
+    shm_size: "1gb"
+    environment:
+      LOG_LEVEL: ${FLARESOLVERR_LOG_LEVEL:-info}
+      TZ: ${TZ:-UTC}
+    logging: *default-logging
+    networks:
+      - oksskolten
+
+volumes:
+  oksskolten_data:
+  oksskolten_meili:
+
+networks:
+  oksskolten:
+    driver: bridge

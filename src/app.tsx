@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import useSWR, { SWRConfig } from 'swr'
 import { useSettings, type Settings } from './hooks/use-settings'
 import { fetcher } from './lib/fetcher'
-import { LocaleContext, APP_NAME, type Locale, useI18n } from './lib/i18n'
+import { LocaleContext, APP_NAME, type Locale, useI18n, isLocale } from './lib/i18n'
 import { MD_BREAKPOINT } from './lib/breakpoints'
 import { useIsTouchDevice } from './hooks/use-is-touch-device'
 import { saveScrollPosition, restoreScrollPosition } from './hooks/use-scroll-restoration'
@@ -45,17 +45,19 @@ function AppLayout() {
 
   const { data: profile } = useSWR<{ language: string | null }>('/api/settings/profile', fetcher)
 
-  // Query parameter ?lang=ja|en takes highest priority (useful for demo sharing links)
+  // Query parameter ?lang=ja|en|zh takes highest priority (useful for demo sharing links)
   const langFromUrl = useMemo(() => {
     const p = new URLSearchParams(window.location.search).get('lang')
-    return p === 'ja' || p === 'en' ? p : null
+    return isLocale(p) ? p : null
   }, [])
 
   const [locale, setLocaleState] = useState<Locale>(() => {
     if (langFromUrl) return langFromUrl
     const cached = localStorage.getItem('locale')
-    if (cached === 'ja' || cached === 'en') return cached
-    return navigator.language.startsWith('ja') ? 'ja' : 'en'
+    if (isLocale(cached)) return cached
+    if (navigator.language.toLowerCase().startsWith('ja')) return 'ja'
+    if (navigator.language.toLowerCase().startsWith('zh')) return 'zh'
+    return 'en'
   })
 
   const setLocale = useCallback((l: Locale) => {
@@ -72,8 +74,8 @@ function AppLayout() {
     // Only apply profile language as initial fallback — if localStorage already
     // has a valid locale the user explicitly chose, respect it.
     const cached = localStorage.getItem('locale')
-    if (cached === 'ja' || cached === 'en') return
-    if (profile?.language === 'ja' || profile?.language === 'en') {
+    if (isLocale(cached)) return
+    if (isLocale(profile?.language)) {
       setLocale(profile.language)
     }
   }, [profile, setLocale, langFromUrl])
@@ -83,6 +85,10 @@ function AppLayout() {
   useEffect(() => {
     document.title = APP_NAME
   }, [])
+
+  useEffect(() => {
+    document.documentElement.lang = locale
+  }, [locale])
 
   return (
     <LocaleContext.Provider value={localeCtx}>

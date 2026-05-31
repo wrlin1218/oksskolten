@@ -141,7 +141,7 @@ export function PasskeySettings() {
       </div>
 
       {!webauthnSupported && (
-        <p className="text-xs text-muted">WebAuthn is not supported in this browser.</p>
+        <p className="text-xs text-muted">{t('settings.webauthnUnsupported')}</p>
       )}
 
       {passkeys && passkeys.length > 0 ? (

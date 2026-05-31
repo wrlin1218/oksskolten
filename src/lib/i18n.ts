@@ -1,8 +1,21 @@
 import { createContext, useContext } from 'react'
+import { zhDict } from './i18n.zh'
 
-export type Locale = 'ja' | 'en'
+export const SUPPORTED_LOCALES = ['ja', 'en', 'zh'] as const
+export type Locale = typeof SUPPORTED_LOCALES[number]
 
 export const APP_NAME = 'Oksskolten'
+
+export function isLocale(value: string | null | undefined): value is Locale {
+  return SUPPORTED_LOCALES.includes(value as Locale)
+}
+
+function localeFromNavigator(): Locale {
+  const language = navigator.language.toLowerCase()
+  if (language.startsWith('ja')) return 'ja'
+  if (language.startsWith('zh')) return 'zh'
+  return 'en'
+}
 
 const dict = {
   // Header
@@ -147,6 +160,7 @@ const dict = {
   'article.deleteConfirm': { ja: 'この記事を削除しますか？', en: 'Delete this article?' },
 
   // AddModal (unified)
+  'modal.title': { ja: '追加メニュー', en: 'Add menu' },
   'modal.addNew': { ja: 'はじめる', en: 'Get Started' },
   'modal.addFeedOption': { ja: 'フィード', en: 'Feed' },
   'modal.addFeedDesc': { ja: 'URLからRSSフィードを追加', en: 'Add an RSS feed from a URL' },
@@ -329,6 +343,7 @@ const dict = {
   'settings.languageDesc': { ja: 'UIの表示言語', en: 'Display language for UI' },
   'settings.languageJa': { ja: '日本語', en: 'Japanese' },
   'settings.languageEn': { ja: '英語', en: 'English' },
+  'settings.languageZh': { ja: '中国語', en: 'Chinese' },
 
   // Translation target language
   'settings.translateTargetLang': { ja: '翻訳先言語', en: 'Translation language' },
@@ -445,6 +460,12 @@ const dict = {
 
   // ConfirmDialog
   'confirm.cancel': { ja: 'キャンセル', en: 'Cancel' },
+  'common.close': { ja: '閉じる', en: 'Close' },
+  'common.loading': { ja: '読み込み中', en: 'Loading' },
+  'common.errorTitle': { ja: '問題が発生しました', en: 'Something went wrong' },
+  'common.retry': { ja: '再試行', en: 'Retry' },
+  'common.goHome': { ja: 'ホームへ戻る', en: 'Go to Home' },
+  'common.stackTrace': { ja: 'スタックトレース', en: 'Stack trace' },
 
   // Setup
   'setup.title': { ja: '初期設定', en: 'Initial Setup' },
@@ -529,6 +550,7 @@ const dict = {
   'settings.addPasskey': { ja: 'パスキーを追加', en: 'Add passkey' },
   'settings.deletePasskey': { ja: '削除', en: 'Delete' },
   'settings.noPasskeys': { ja: '登録済みのパスキーはありません', en: 'No passkeys registered' },
+  'settings.webauthnUnsupported': { ja: 'このブラウザは WebAuthn に対応していません。', en: 'WebAuthn is not supported in this browser.' },
   'settings.cannotDisablePassword': { ja: '他のログイン方法が有効でないため無効にできません', en: 'Cannot disable without an alternative login method' },
   'settings.cannotDeleteLastPasskey': { ja: '他のログイン方法が有効でないため、最後のパスキーは削除できません', en: 'Cannot delete the last passkey without an alternative login method' },
   'settings.multiDevice': { ja: 'マルチデバイス', en: 'Multi-device' },
@@ -593,6 +615,9 @@ const dict = {
   'settings.githubGuideTitle': { ja: 'セットアップガイド', en: 'Setup guide' },
   'settings.githubGuideStep1': { ja: 'を開き、OAuth Apps → New OAuth App をクリック', en: ', then click OAuth Apps → New OAuth App' },
   'settings.githubGuideStep2': { ja: '以下を入力して Register application をクリック:', en: 'Fill in the following and click Register application:' },
+  'settings.githubGuideApplicationName': { ja: 'Application name', en: 'Application name' },
+  'settings.githubGuideHomepageUrl': { ja: 'Homepage URL', en: 'Homepage URL' },
+  'settings.githubGuideCallbackUrl': { ja: 'Callback URL', en: 'Callback URL' },
   'settings.githubGuideAppName': { ja: '任意の名前', en: 'Any name' },
   'settings.githubGuideStep3': { ja: '作成後に表示される Client ID と Client Secret を下のフォームに貼り付けて保存', en: 'Copy the Client ID and Client Secret shown after creation, paste them below, and save' },
   'settings.githubSave': { ja: '保存', en: 'Save' },
@@ -816,7 +841,7 @@ const dict = {
   'toast.reload': { ja: '更新', en: 'Reload' },
 } as const
 
-type MessageKey = keyof typeof dict
+export type MessageKey = keyof typeof dict
 
 const errorCodeMap: Record<string, MessageKey> = {
   ANTHROPIC_KEY_NOT_SET: 'error.anthropicKeyNotSet',
@@ -833,17 +858,28 @@ interface LocaleContextValue {
   setLocale: (locale: Locale) => void
 }
 
-const defaultLocale: Locale = navigator.language.startsWith('ja') ? 'ja' : 'en'
+function resolveLocaleFromStorageAndUrl(): Locale {
+  const langFromUrl = new URLSearchParams(window.location.search).get('lang')
+  if (isLocale(langFromUrl)) return langFromUrl
+  const stored = localStorage.getItem('locale')
+  if (isLocale(stored)) return stored
+  return localeFromNavigator()
+}
+
+const defaultLocale: Locale = resolveLocaleFromStorageAndUrl()
 
 function resolveLocale(): Locale {
-  const stored = localStorage.getItem('locale')
-  if (stored === 'ja' || stored === 'en') return stored
-  return defaultLocale
+  return resolveLocaleFromStorageAndUrl()
+}
+
+function messageForLocale(key: MessageKey, locale: Locale): string {
+  if (locale === 'zh') return zhDict[key] ?? dict[key].en
+  return dict[key][locale]
 }
 
 /** Translate outside React tree (resolves locale from localStorage) */
 export function translate(key: MessageKey): string {
-  return dict[key][resolveLocale()]
+  return messageForLocale(key, resolveLocale())
 }
 
 export const LocaleContext = createContext<LocaleContextValue>({
@@ -861,10 +897,11 @@ export function isMessageKey(key: string): key is MessageKey {
 export function useI18n() {
   const { locale, setLocale } = useContext(LocaleContext)
   const t = (key: MessageKey, params?: Record<string, string>): string => {
-    let text: string = dict[key][locale]
+    let text: string = messageForLocale(key, locale)
     if (params) {
       for (const [k, v] of Object.entries(params)) {
         text = text.replaceAll(`\${${k}}`, v)
+        text = text.replaceAll(`{${k}}`, v)
       }
     }
     return text

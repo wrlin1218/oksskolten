@@ -35,7 +35,7 @@ export function FeedModal({ onClose, onCreated, onCategoryCreated, onFetchStarte
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
       <DialogContent className="max-w-sm" aria-describedby={undefined}>
-      <VisuallyHidden.Root asChild><DialogTitle>Modal</DialogTitle></VisuallyHidden.Root>
+      <VisuallyHidden.Root asChild><DialogTitle>{t('modal.title')}</DialogTitle></VisuallyHidden.Root>
       {step === 'select' && (
         <>
           <div className="flex items-center justify-between mb-4">

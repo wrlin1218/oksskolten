@@ -3,12 +3,14 @@ import { MessagesSquare } from 'lucide-react'
 import useSWR from 'swr'
 import { ChatPanel } from './chat-panel'
 import { fetcher } from '../../lib/fetcher'
+import { useI18n } from '../../lib/i18n'
 
 interface ChatFabProps {
   articleId: number
 }
 
 export function ChatFab({ articleId }: ChatFabProps) {
+  const { t } = useI18n()
   const [panelOpen, setPanelOpen] = useState(false)
   // Track whether panel has ever been opened — mount ChatPanel only after first open,
   // then keep it alive (hidden) so useChat state is preserved.
@@ -59,7 +61,7 @@ export function ChatFab({ articleId }: ChatFabProps) {
       <button
         onClick={handleToggle}
         className="fixed bottom-[calc(1.5rem+var(--safe-area-inset-bottom))] right-6 z-50 w-12 h-12 rounded-full bg-accent text-accent-text flex items-center justify-center shadow-lg hover:opacity-90 transition-opacity select-none"
-        aria-label="Chat"
+        aria-label={t('chat.title')}
       >
         <MessagesSquare className="w-5 h-5" />
         {/* Dot badge for existing conversations */}

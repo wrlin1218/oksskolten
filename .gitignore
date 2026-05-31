@@ -4,6 +4,7 @@ dist/
 /data-prod/
 docs/temp_*
 .env
+.env.deploy
 *.db
 *.db-wal
 *.db-shm

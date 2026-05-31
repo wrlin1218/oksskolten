@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
+import { useI18n } from '../../lib/i18n'
 
 interface HintBannerProps {
   storageKey: string
@@ -8,6 +9,7 @@ interface HintBannerProps {
 }
 
 export function HintBanner({ storageKey, children }: HintBannerProps) {
+  const { t } = useI18n()
   const [dismissed, setDismissed] = useState(() => localStorage.getItem(storageKey) === '1')
 
   if (dismissed) return null
@@ -31,7 +33,7 @@ export function HintBanner({ storageKey, children }: HintBannerProps) {
             <button
               onClick={handleDismiss}
               className="shrink-0 rounded p-0.5 hover:bg-hover transition-colors"
-              aria-label="Close"
+              aria-label={t('common.close')}
             >
               <X className="w-3.5 h-3.5" />
             </button>

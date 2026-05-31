@@ -180,7 +180,7 @@ export function SearchDialog({ onClose }: SearchDialogProps) {
           style={{ paddingTop: 'env(safe-area-inset-top)' }}
           aria-describedby={undefined}
         >
-          <DialogTitle className="sr-only">Search</DialogTitle>
+          <DialogTitle className="sr-only">{t('search.title')}</DialogTitle>
         <Command
           shouldFilter={false}
           className={[
@@ -210,7 +210,7 @@ export function SearchDialog({ onClose }: SearchDialogProps) {
             <button
               onClick={onClose}
               className="md:hidden flex items-center justify-center w-8 h-8 rounded-full bg-bg-subtle text-muted hover:text-text active:bg-border transition-colors shrink-0"
-              aria-label="Close"
+              aria-label={t('common.close')}
             >
               <X size={16} strokeWidth={1.5} />
             </button>
