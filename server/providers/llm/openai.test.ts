@@ -24,7 +24,7 @@ vi.mock('openai', () => ({
   },
 }))
 
-import { openaiProvider, getOpenAIClient } from './openai.js'
+import { openaiProvider, getOpenAIClient, getOpenAIBaseUrl } from './openai.js'
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -47,10 +47,33 @@ describe('openaiProvider.requireKey', () => {
 // --- getOpenAIClient ---
 
 describe('getOpenAIClient', () => {
+  it('returns the configured base URL', () => {
+    mockGetSetting.mockImplementation((key: string) => {
+      if (key === 'openai.base_url') return 'https://openai-proxy.test/v1'
+      return undefined
+    })
+
+    expect(getOpenAIBaseUrl()).toBe('https://openai-proxy.test/v1')
+  })
+
   it('returns a client', () => {
     mockGetSetting.mockReturnValue('sk-test')
     const client = getOpenAIClient()
     expect(client).toBeDefined()
+  })
+
+  it('passes configured base URL to the OpenAI client', () => {
+    mockGetSetting.mockImplementation((key: string) => {
+      if (key === 'api_key.openai') return 'sk-base-url-test'
+      if (key === 'openai.base_url') return 'https://openai-proxy.test/v1'
+      return undefined
+    })
+
+    const client = getOpenAIClient() as any
+    expect(client.opts).toEqual({
+      apiKey: 'sk-base-url-test',
+      baseURL: 'https://openai-proxy.test/v1',
+    })
   })
 
   it('caches client for same key', () => {
@@ -65,6 +88,24 @@ describe('getOpenAIClient', () => {
     const c1 = getOpenAIClient()
     mockGetSetting.mockReturnValue('sk-key-2')
     const c2 = getOpenAIClient()
+    expect(c1).not.toBe(c2)
+  })
+
+  it('creates new client when base URL changes', () => {
+    mockGetSetting.mockImplementation((key: string) => {
+      if (key === 'api_key.openai') return 'sk-same-key'
+      if (key === 'openai.base_url') return 'https://proxy-one.test/v1'
+      return undefined
+    })
+    const c1 = getOpenAIClient()
+
+    mockGetSetting.mockImplementation((key: string) => {
+      if (key === 'api_key.openai') return 'sk-same-key'
+      if (key === 'openai.base_url') return 'https://proxy-two.test/v1'
+      return undefined
+    })
+    const c2 = getOpenAIClient()
+
     expect(c1).not.toBe(c2)
   })
 })

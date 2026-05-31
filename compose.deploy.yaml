@@ -37,6 +37,8 @@ services:
       MEILI_URL: http://meilisearch:7700
       RSS_BRIDGE_URL: http://rss-bridge:80
       FLARESOLVERR_URL: http://flaresolverr:8191
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      DEEPLX_BASE_URL: ${DEEPLX_BASE_URL:-}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       VLLM_BASE_URL: ${VLLM_BASE_URL:-http://host.docker.internal:8000}
     ports:

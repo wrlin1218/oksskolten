@@ -711,5 +711,20 @@ describe('vLLM endpoints', () => {
     const { getSetting } = await import('../db.js')
     expect(getSetting('vllm.base_url')).toBe('http://vllm:8000')
   })
-})
 
+  it('PATCH /api/settings/preferences updates OpenAI and DeepLX base URLs', async () => {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/settings/preferences',
+      headers: json,
+      payload: {
+        'openai.base_url': 'https://openai-proxy.example/v1',
+        'deepl.base_url': 'http://deeplx:1188',
+      },
+    })
+    expect(res.statusCode).toBe(200)
+    const { getSetting } = await import('../db.js')
+    expect(getSetting('openai.base_url')).toBe('https://openai-proxy.example/v1')
+    expect(getSetting('deepl.base_url')).toBe('http://deeplx:1188')
+  })
+})

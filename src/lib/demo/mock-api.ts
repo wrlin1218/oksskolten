@@ -142,6 +142,8 @@ export async function demoFetcher(url: string): Promise<unknown> {
       'translate.provider': 'deepl',
       'translate.model': '',
       'translate.target_lang': null,
+      'openai.base_url': null,
+      'deepl.base_url': null,
     }
   }
 

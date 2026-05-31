@@ -38,6 +38,7 @@ export function TaskModelSection({ settings, t }: { settings: Settings; t: TFunc
   const openaiKey = useSWR<{ configured: boolean }>(`/api/settings/api-keys/openai`, fetcher, SWR_KEY_OPTS)
   const googleTranslateKey = useSWR<{ configured: boolean }>(`/api/settings/api-keys/google-translate`, fetcher, SWR_KEY_OPTS)
   const deeplKey = useSWR<{ configured: boolean }>(`/api/settings/api-keys/deepl`, fetcher, SWR_KEY_OPTS)
+  const prefs = useSWR<Record<string, string | null>>('/api/settings/preferences', fetcher, SWR_KEY_OPTS)
   const { data: claudeCodeStatus } = useSWR<{ loggedIn?: boolean; error?: string }>(
     '/api/chat/claude-code-status', fetcher, SWR_KEY_OPTS,
   )
@@ -46,10 +47,12 @@ export function TaskModelSection({ settings, t }: { settings: Settings; t: TFunc
   const translateKeyStatuses = [googleTranslateKey, deeplKey]
 
   const claudeCodeReady = !!claudeCodeStatus?.loggedIn
+  const deeplBaseUrl = prefs.data?.['deepl.base_url'] || ''
   const configuredKeys = useMemo(() => {
     const map: Record<string, boolean> = {}
     LLM_API_PROVIDERS.forEach((p, i) => { map[p] = !!llmKeyStatuses[i].data?.configured })
     TRANSLATE_SERVICE_PROVIDERS.forEach((p, i) => { map[p] = !!translateKeyStatuses[i].data?.configured })
+    map.deepl = map.deepl || !!deeplBaseUrl
     map['claude-code'] = claudeCodeReady
     map['ollama'] = true  // Ollama requires no API key; always available
     map['vllm'] = true    // vLLM requires no API key by default; always available
@@ -58,13 +61,13 @@ export function TaskModelSection({ settings, t }: { settings: Settings; t: TFunc
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     anthropicKey.data?.configured, geminiKey.data?.configured, openaiKey.data?.configured,
-    googleTranslateKey.data?.configured, deeplKey.data?.configured, claudeCodeReady,
+    googleTranslateKey.data?.configured, deeplKey.data?.configured, deeplBaseUrl, claudeCodeReady,
   ])
   // Ollama/vLLM requires no API key, so the task section is always enabled when they are available.
   const hasAnyLlmKey = LLM_API_PROVIDERS.some(p => configuredKeys[p]) || claudeCodeReady || configuredKeys['ollama'] || configuredKeys['vllm']
   const hasAnyTranslateKey = TRANSLATE_SERVICE_PROVIDERS.some(p => configuredKeys[p])
   const hasAnyKey = hasAnyLlmKey || hasAnyTranslateKey
-  const keysLoading = llmKeyStatuses.some(s => !s.data) || translateKeyStatuses.some(s => !s.data)
+  const keysLoading = llmKeyStatuses.some(s => !s.data) || translateKeyStatuses.some(s => !s.data) || !prefs.data
 
   const tasks: TaskConfig[] = [
     {

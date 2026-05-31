@@ -17,7 +17,7 @@ vi.mock('../../db.js', () => ({
 
 vi.stubGlobal('fetch', mockFetch)
 
-import { requireDeeplKey, deeplTranslate, getDeeplMonthlyUsage } from './deepl.js'
+import { requireDeeplKey, deeplTranslate, getDeeplMonthlyUsage, getDeepLxBaseUrl } from './deepl.js'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -28,6 +28,16 @@ function mockDeeplResponse(translatedText: string) {
     ok: true,
     json: async () => ({
       translations: [{ text: translatedText }],
+    }),
+  })
+}
+
+function mockDeepLxResponse(translatedText: string) {
+  mockFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      code: 200,
+      data: translatedText,
     }),
   })
 }
@@ -69,6 +79,15 @@ describe('requireDeeplKey', () => {
 // ---------------------------------------------------------------------------
 
 describe('deeplTranslate', () => {
+  it('returns the configured DeepLX base URL', () => {
+    mockGetSetting.mockImplementation((key: string) => {
+      if (key === 'deepl.base_url') return 'http://deeplx:1188'
+      return undefined
+    })
+
+    expect(getDeepLxBaseUrl()).toBe('http://deeplx:1188')
+  })
+
   it('translates plain text', async () => {
     setupApiKey('deepl-key:fx')
     mockDeeplResponse('<p>こんにちは世界</p>')
@@ -115,6 +134,41 @@ describe('deeplTranslate', () => {
 
     const [, opts] = mockFetch.mock.calls[0]
     expect(opts.headers['Authorization']).toBe('DeepL-Auth-Key my-key:fx')
+  })
+
+  it('uses DeepLX base URL without requiring a DeepL API key', async () => {
+    mockGetSetting.mockImplementation((key: string) => {
+      if (key === 'deepl.base_url') return 'http://deeplx:1188'
+      return undefined
+    })
+    mockDeepLxResponse('<p>DeepLX 翻訳</p>')
+
+    const result = await deeplTranslate('Hello world', 'ja')
+
+    expect(result.translatedText).toBe('DeepLX 翻訳')
+    const [url, opts] = mockFetch.mock.calls[0]
+    expect(url).toBe('http://deeplx:1188/translate')
+    expect(opts.headers.Authorization).toBeUndefined()
+    const body = JSON.parse(opts.body)
+    expect(body.text).toContain('Hello world')
+    expect(body.source_lang).toBe('auto')
+    expect(body.target_lang).toBe('JA')
+    expect(body.tag_handling).toBe('html')
+  })
+
+  it('sends configured API key as a DeepLX bearer token', async () => {
+    mockGetSetting.mockImplementation((key: string) => {
+      if (key === 'deepl.base_url') return 'http://deeplx:1188/translate'
+      if (key === 'api_key.deepl') return 'deeplx-token'
+      return undefined
+    })
+    mockDeepLxResponse('<p>DeepLX 翻訳</p>')
+
+    await deeplTranslate('Hello', 'ja')
+
+    const [url, opts] = mockFetch.mock.calls[0]
+    expect(url).toBe('http://deeplx:1188/translate')
+    expect(opts.headers.Authorization).toBe('Bearer deeplx-token')
   })
 
   it('preserves inline code through translation', async () => {

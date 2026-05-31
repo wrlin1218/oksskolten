@@ -8,6 +8,27 @@ import { ExternalLink, CircleDot, CircleCheck, CircleSlash } from 'lucide-react'
 import type { Settings } from '../../../hooks/use-settings'
 
 type TFunc = (key: any, params?: Record<string, string>) => string
+type BaseUrlConfig = {
+  prefKey: 'openai.base_url' | 'deepl.base_url'
+  labelKey: string
+  hintKey: string
+  placeholderKey: string
+}
+
+const BASE_URL_CONFIG: Record<string, BaseUrlConfig> = {
+  openai: {
+    prefKey: 'openai.base_url',
+    labelKey: 'openai.baseUrl',
+    hintKey: 'openai.baseUrlDesc',
+    placeholderKey: 'openai.baseUrlPlaceholder',
+  },
+  deepl: {
+    prefKey: 'deepl.base_url',
+    labelKey: 'deepl.baseUrl',
+    hintKey: 'deepl.baseUrlDesc',
+    placeholderKey: 'deepl.baseUrlPlaceholder',
+  },
+}
 
 export function ProviderConfigSection({ t, settings }: { t: TFunc; settings: Settings }) {
   return (
@@ -63,15 +84,29 @@ export function ProviderConfigSection({ t, settings }: { t: TFunc; settings: Set
 }
 
 function ApiProviderCard({ provider, t }: { provider: string; t: TFunc }) {
+  const baseUrlConfig = BASE_URL_CONFIG[provider]
   const { data: keyStatus, mutate: mutateKeyStatus } = useSWR<{ configured: boolean }>(
     `/api/settings/api-keys/${provider}`,
     fetcher,
     { revalidateOnFocus: false },
   )
+  const { data: prefs, mutate: mutatePrefs } = useSWR<Record<string, string | null>>(
+    baseUrlConfig ? '/api/settings/preferences' : null,
+    fetcher,
+    { revalidateOnFocus: false },
+  )
 
   const [apiKeyInput, setApiKeyInput] = useState('')
+  const [baseUrlInput, setBaseUrlInput] = useState('')
+  const [initialized, setInitialized] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
+
+  useEffect(() => {
+    if (!baseUrlConfig || !prefs || initialized) return
+    setBaseUrlInput(prefs[baseUrlConfig.prefKey] || '')
+    setInitialized(true)
+  }, [baseUrlConfig, prefs, initialized])
 
   function showMessage(text: string, type: 'success' | 'error') {
     setMessage({ text, type })
@@ -79,6 +114,7 @@ function ApiProviderCard({ provider, t }: { provider: string; t: TFunc }) {
   }
 
   const endpoint = `/api/settings/api-keys/${provider}`
+  const savedBaseUrl = baseUrlConfig ? prefs?.[baseUrlConfig.prefKey] || '' : ''
   const savedMsg = provider === 'gemini' ? t('gemini.apiKeySaved')
     : provider === 'openai' ? t('openai.apiKeySaved')
     : provider === 'google-translate' ? t('googleTranslate.apiKeySaved')
@@ -94,15 +130,24 @@ function ApiProviderCard({ provider, t }: { provider: string; t: TFunc }) {
     : provider === 'google-translate' ? 'AIza...'
     : provider === 'deepl' ? '...'
     : 'sk-ant-...'
+  const hasChanges = !!apiKeyInput || (!!baseUrlConfig && baseUrlInput !== savedBaseUrl)
 
   async function handleSave() {
     if (saving) return
     setSaving(true)
     try {
-      await apiPost(endpoint, { apiKey: apiKeyInput })
+      const saves: Promise<unknown>[] = []
+      if (apiKeyInput) {
+        saves.push(apiPost(endpoint, { apiKey: apiKeyInput }))
+      }
+      if (baseUrlConfig && baseUrlInput !== savedBaseUrl) {
+        saves.push(apiPatch('/api/settings/preferences', { [baseUrlConfig.prefKey]: baseUrlInput || '' }))
+      }
+      await Promise.all(saves)
       void mutateKeyStatus()
+      if (baseUrlConfig) void mutatePrefs()
       setApiKeyInput('')
-      showMessage(savedMsg, 'success')
+      showMessage(apiKeyInput ? savedMsg : t('settings.saved'), 'success')
     } catch (err: unknown) {
       showMessage(err instanceof Error ? err.message : 'Save failed', 'error')
     } finally {
@@ -126,15 +171,16 @@ function ApiProviderCard({ provider, t }: { provider: string; t: TFunc }) {
   }
 
   const isConfigured = keyStatus?.configured
+  const isProviderConfigured = provider === 'deepl' ? !!isConfigured || !!savedBaseUrl : !!isConfigured
 
   return (
     <div className="p-3 rounded-lg bg-bg-card border border-border space-y-2 min-h-[3rem]">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className={`w-2 h-2 rounded-full shrink-0 ${isConfigured ? 'bg-success' : 'bg-error'}`} />
+          <span className={`w-2 h-2 rounded-full shrink-0 ${isProviderConfigured ? 'bg-success' : 'bg-error'}`} />
           <span className="text-sm font-medium text-text select-none">{t(PROVIDER_LABELS[provider])}</span>
           <span className="text-xs text-muted select-none">
-            {isConfigured ? t('chat.apiKeyConfigured') : t('chat.apiKeyNotSet')}
+            {isProviderConfigured ? t('chat.apiKeyConfigured') : t('chat.apiKeyNotSet')}
           </span>
         </div>
         {isConfigured && (
@@ -149,6 +195,18 @@ function ApiProviderCard({ provider, t }: { provider: string; t: TFunc }) {
         )}
       </div>
 
+      {baseUrlConfig && (
+        <FormField label={t(baseUrlConfig.labelKey)} hint={t(baseUrlConfig.hintKey)} compact>
+          <Input
+            type="text"
+            value={baseUrlInput}
+            onChange={e => setBaseUrlInput(e.target.value)}
+            placeholder={t(baseUrlConfig.placeholderKey)}
+            className="py-1.5"
+          />
+        </FormField>
+      )}
+
       {!isConfigured && (
         <FormField label={t('chat.apiKey')} compact>
           <div className="flex items-center gap-2">
@@ -159,18 +217,19 @@ function ApiProviderCard({ provider, t }: { provider: string; t: TFunc }) {
             placeholder={placeholder}
             className="flex-1 py-1.5"
           />
-          {apiKeyInput && (
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saving}
-              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-accent text-accent-text hover:opacity-90 transition-opacity disabled:opacity-50 select-none"
-            >
-              {saving ? '...' : t('settings.save')}
-            </button>
-          )}
           </div>
         </FormField>
+      )}
+
+      {hasChanges && (
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          className="px-3 py-1.5 text-xs font-medium rounded-lg bg-accent text-accent-text hover:opacity-90 transition-opacity disabled:opacity-50 select-none"
+        >
+          {saving ? '...' : t('settings.save')}
+        </button>
       )}
 
       {message && (
